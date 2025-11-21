@@ -14,7 +14,17 @@ public class Cat {
     public static readonly IReadOnlyList<string> RaceLabels = [
                             "Común europeo", "Siamés", "Persa", "Esfinge" ];
 
-    public required string Name { get; init; }
+    public required string Name {
+        get => field;
+        init {
+            if ( string.IsNullOrWhiteSpace( value ) ) {
+                value = "Garfield";
+            }
+
+            field = value;
+        }
+    }
+
     public required Races Race { get; init; }
     public required DateTime Birth { get; init; }
 }
