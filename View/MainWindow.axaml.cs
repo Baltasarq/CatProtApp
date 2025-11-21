@@ -6,8 +6,8 @@ namespace CatProtApp.View;
 
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using Avalonia.Controls;
-using Core;
 
 
 public partial class MainWindow : Window
@@ -17,82 +17,62 @@ public partial class MainWindow : Window
         this.InitializeComponent();
 
         // Lookup controls
-        var edRace = this.GetControl<ComboBox>( "EdRace" );
-        var btNext = this.GetControl<Button>( "BtNext" );
-        var btPrev = this.GetControl<Button>( "BtPrev" );
-        var btNew = this.GetControl<Button>( "BtNew" );
+        this._edName = this.GetControl<TextBox>( "EdName" );
+        this._edRace = this.GetControl<ComboBox>( "EdRace" );
+        this._btNext = this.GetControl<Button>( "BtNext" );
+        this._btPrev = this.GetControl<Button>( "BtPrev" );
+        this._btNew = this.GetControl<Button>( "BtNew" );
+        this._edBirthDate = this.GetControl<DatePicker>( "EdBirthDate" );
+        this._lblStatus = this.GetControl<Label>( "LblStatus" );
 
-        // Set the items of the combobox
-        edRace.ItemsSource = Cat.RaceLabels;
-
-        // Button action callbacks
-        btNext.Click += (_, _) => this.Next();
-        btPrev.Click += (_, _) => this.Prev();
-        btNew.Click += (_, _) => this.New();
-
-        // Goto 0
-        this._cats = new CatCollection();
-        this.Update();
-        Trace.Listeners.Add( new ConsoleTraceListener() );
+        this.OnNext = this.OnPrev = this.OnNew = () => {};
+        this._btNext.Click += (_, _) => this.OnNext();
+        this._btPrev.Click += (_, _) => this.OnPrev();
+        this._btNew.Click += (_, _) => this.OnNew();
     }
 
-    /// <summary>Updates the view.</summary>
-    private void Update()
+    internal void Init(IReadOnlyList<string> raceLabels)
     {
-        var edName = this.GetControl<TextBox>( "EdName" );
-        var edRace = this.GetControl<ComboBox>( "EdRace" );
-        var edBirthDate = this.GetControl<DatePicker>( "EdBirthDate" );
-        var lblStatus = this.GetControl<Label>( "LblStatus" );
-        //int pos = Math.Min( this._cats.Count, this._cats.Cursor + 1 );
+        // Set the items of the combobox
+        this._edRace.ItemsSource = raceLabels;
+        this._edRace.SelectedIndex = 0;
+    }
 
-
+    internal void UpdateStatus(int pos, int numCats)
+    {
         // Status
-        lblStatus.Content = "0 / 0";
-
-        Trace.WriteLine( $"Cursor: {this._cats.Cursor} / {this._cats.Count}" );
-        Trace.WriteLine( $"IsCursorValid: {this._cats.IsCursorValid()}" );
+        this._lblStatus.Content = "0 / 0";
 
         // Current cat
-        if ( this._cats.IsCursorValid() ) {
-            var cat = this._cats.GetAtCursor();
-
-            edName.Text = cat.Name;
-            edRace.SelectedIndex = (int) cat.Race;
-            edBirthDate.SelectedDate = new DateTimeOffset( cat.Birth );
-            lblStatus.Content = $"{this._cats.Cursor + 1} / {this._cats.Count}";
+        if ( pos >= 0 ) {
+            this._lblStatus.Content = $"{pos + 1} / {numCats}";
         }
     }
 
-    /// <summary>Change to the next element, if it exists.</summary>
-    private void Next()
+    public int GetCurrentRaceIndex() => this._edRace.SelectedIndex;
+
+    public DateTimeOffset GetCurrentBirth()
+        => this._edBirthDate.SelectedDate.GetValueOrDefault(
+                                            new DateTimeOffset( DateTime.Today ));
+    public string GetCurrentName() => ( this._edName.Text ?? "" ).Trim();
+
+    public void SetCurrentName(string name) => this._edName.Text = name;
+    public void SetCurrentRaceIndex(int index)
     {
-        this._cats.Next();
-        this.Update();
+        Debug.Assert( index >= 0 && index < this._edRace.Items.Count );
+        this._edRace.SelectedIndex = index;
     }
+    public void SetCurrentBirth(DateTime birth)
+        => this._edBirthDate.SelectedDate = new DateTimeOffset( birth );
 
-    /// <summary>Change to the previous element, if it exists.</summary>
-    private void Prev()
-    {
-        this._cats.Prev();
-        this.Update();
-    }
-
-    /// <summary>Creates a new cat, and adds it to the list.</summary>
-    private void New()
-    {
-        var edName = this.GetControl<TextBox>( "EdName" );
-        var edRace = this.GetControl<ComboBox>( "EdRace" );
-        var edBirthDate = this.GetControl<DatePicker>( "EdBirthDate" );
-
-        var race = Enum.GetValues<Cat.Races>()[ edRace.SelectedIndex ];
-        var date = edBirthDate.SelectedDate.GetValueOrDefault(
-                                                    new DateTimeOffset( DateTime.Today ));
-        var cat = new Cat{  Name = edName.Text ?? "Garfield",
-                            Race = race,
-                            Birth = date.Date };
-        this._cats.Add( cat );
-        this.Update();
-    }
-
-    private readonly CatCollection _cats;
+    public Action OnNext;
+    public Action OnPrev;
+    public Action OnNew;
+    private readonly ComboBox _edRace;
+    private readonly Button _btNew;
+    private readonly Button _btNext;
+    private readonly Button _btPrev;
+    private readonly DatePicker _edBirthDate;
+    private readonly Label _lblStatus;
+    private readonly TextBox _edName;
 }
